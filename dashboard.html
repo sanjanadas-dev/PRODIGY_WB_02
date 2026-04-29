@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — ShadoW</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="app-body">
+  <div class="page-bg" aria-hidden="true"></div>
+
+  <div class="app-shell" id="appShell">
+    <header class="app-topbar">
+      <a href="index.html" class="logo">ShadoW</a>
+      <div class="app-topbar-actions">
+        <span id="userName" style="font-weight: 600; font-size: 0.9rem"></span>
+        <span id="roleBadge" class="role-badge"></span>
+        <button type="button" class="btn-dash btn-dash-ghost" id="themeToggle" title="Toggle light / dark glass">
+          Theme
+        </button>
+        <div class="notif-wrap">
+          <button type="button" class="notif-btn" id="notifBtn" aria-expanded="false" aria-label="Notifications">
+            🔔
+            <span class="notif-badge" id="notifCount" hidden>0</span>
+          </button>
+          <div class="notif-panel" id="notifPanel"></div>
+        </div>
+        <button type="button" class="btn-dash btn-dash-ghost" id="logoutBtn">Log out</button>
+      </div>
+    </header>
+
+    <div class="app-layout">
+      <aside class="app-sidebar">
+        <div class="dash-brand" style="margin-bottom: 1rem">S</div>
+        <ul class="dash-menu" id="sideNav">
+          <li data-view="overview">
+            <span class="dash-icon" aria-hidden="true">▣</span>
+            <span>Overview</span>
+          </li>
+          <li data-view="projects" class="is-active">
+            <span class="dash-icon" aria-hidden="true">◫</span>
+            <span>Projects</span>
+          </li>
+          <li data-view="teams" class="leader-only">
+            <span class="dash-icon" aria-hidden="true">◎</span>
+            <span>Teams</span>
+          </li>
+          <li data-view="analytics">
+            <span class="dash-icon" aria-hidden="true">◇</span>
+            <span>Analytics</span>
+          </li>
+          <li data-view="settings">
+            <span class="dash-icon" aria-hidden="true">⚙</span>
+            <span>Settings</span>
+          </li>
+        </ul>
+      </aside>
+
+      <main class="app-main">
+        <!-- Overview -->
+        <section id="view-overview" class="view-panel" aria-label="Overview">
+          <h2 class="dash-heading" style="margin-bottom: 1rem">Overview</h2>
+          <div class="stats-grid" id="statsGrid"></div>
+          <p class="hint" style="color: var(--text-muted); font-size: 0.9rem; margin: 0">
+            Quick snapshot of your workspace. Open <strong>Projects</strong> to manage work in detail.
+          </p>
+        </section>
+
+        <!-- Projects -->
+        <section id="view-projects" class="view-panel is-visible" aria-label="Projects">
+          <div class="dash-toolbar">
+            <h2 class="dash-heading">Projects</h2>
+            <div class="dash-actions">
+              <button type="button" class="btn-dash btn-dash-ghost" id="btnExportCsv">Export CSV</button>
+              <button type="button" class="btn-dash btn-dash-primary" id="btnAddProject">＋ Add Project</button>
+            </div>
+          </div>
+          <div class="toolbar-filters">
+            <input type="search" class="search-input" id="projectSearch" placeholder="Search name or code…" />
+            <select id="statusFilter" aria-label="Filter by status">
+              <option value="">All statuses</option>
+              <option value="Ongoing">Ongoing</option>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Project Code</th>
+                  <th>Project Name</th>
+                  <th>Team</th>
+                  <th>Status</th>
+                  <th>Deadline</th>
+                  <th class="col-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="projectsTbody"></tbody>
+            </table>
+          </div>
+          <p id="projectsEmpty" class="empty-state" hidden>No projects match your filters.</p>
+        </section>
+
+        <!-- Teams (leaders) -->
+        <section id="view-teams" class="view-panel" aria-label="Team management">
+          <h2 class="dash-heading" style="margin-bottom: 1rem">Team members</h2>
+          <p class="hint" style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1.25rem">
+            Add accounts for your squad. Assign a role, then link them to projects from the project form.
+          </p>
+          <form id="addMemberForm" style="margin-bottom: 1.5rem">
+            <div class="toolbar-filters" style="margin-bottom: 0">
+              <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 120px">
+                <label for="mName">Name</label>
+                <input id="mName" name="name" type="text" required />
+              </div>
+              <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 140px">
+                <label for="mEmail">Email</label>
+                <input id="mEmail" name="email" type="email" required />
+              </div>
+              <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 120px">
+                <label for="mPassword">Temp password</label>
+                <input id="mPassword" name="password" type="password" required minlength="6" />
+              </div>
+              <div class="form-group" style="margin-bottom: 0; flex: 0 0 140px">
+                <label for="mJobRole">Role</label>
+                <select id="mJobRole" name="jobRole" required>
+                  <option value="">Select…</option>
+                  <option value="developer">Developer</option>
+                  <option value="designer">Designer</option>
+                  <option value="tester">Tester</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-dash btn-dash-primary" style="align-self: flex-end; height: 42px; margin-top: 1.25rem">Add member</button>
+            </div>
+          </form>
+          <p id="teamFormError" class="form-error"></p>
+          <div class="table-wrap">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Added</th>
+                </tr>
+              </thead>
+              <tbody id="teamTbody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Analytics placeholder -->
+        <section id="view-analytics" class="view-panel" aria-label="Analytics">
+          <h2 class="dash-heading" style="margin-bottom: 1rem">Analytics</h2>
+          <div class="charts-grid">
+            <div class="chart-card">
+              <h3>Projects by Status</h3>
+              <canvas id="statusChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Projects by Deadline</h3>
+              <canvas id="deadlineChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Team Distribution</h3>
+              <canvas id="teamChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- Settings -->
+        <section id="view-settings" class="view-panel" aria-label="Settings">
+          <h2 class="dash-heading">Settings</h2>
+          
+          <!-- Profile Settings -->
+          <div class="settings-block">
+            <h3 class="settings-title">👤 Profile Settings</h3>
+            <form id="profileForm" class="settings-form">
+              <div class="form-row">
+                <label>Name</label>
+                <input type="text" id="profileName" required placeholder="Your name" />
+              </div>
+              <div class="form-row">
+                <label>Email</label>
+                <input type="email" id="profileEmail" disabled style="opacity: 0.6; cursor: not-allowed;" />
+                <span class="hint" style="font-size: 0.85rem; margin-top: 0.25rem;">Email cannot be changed</span>
+              </div>
+              <div class="form-row">
+                <label>Role</label>
+                <input type="text" id="profileRole" disabled style="opacity: 0.6; cursor: not-allowed;" />
+              </div>
+              <button type="submit" class="btn btn-primary">Save Profile</button>
+            </form>
+          </div>
+
+          <!-- Password Settings -->
+          <div class="settings-block">
+            <h3 class="settings-title">🔐 Change Password</h3>
+            <form id="passwordForm" class="settings-form">
+              <div class="form-row">
+                <label>Current Password</label>
+                <input type="password" id="currentPassword" required placeholder="Enter current password" />
+              </div>
+              <div class="form-row">
+                <label>New Password</label>
+                <input type="password" id="newPassword" required placeholder="Enter new password" />
+              </div>
+              <div class="form-row">
+                <label>Confirm Password</label>
+                <input type="password" id="confirmPassword" required placeholder="Confirm new password" />
+              </div>
+              <button type="submit" class="btn btn-primary">Update Password</button>
+            </form>
+          </div>
+
+          <!-- Workspace Settings -->
+          <div class="settings-block">
+            <h3 class="settings-title">⚙️ Workspace Settings</h3>
+            <div class="settings-option">
+              <div class="settings-option-label">
+                <strong>Theme</strong>
+                <span class="hint">Light / Dark glass mode</span>
+              </div>
+              <button type="button" class="btn btn-secondary" id="themeBtn" onclick="toggleTheme()">
+                🌙 Dark Mode
+              </button>
+            </div>
+            <div class="settings-option">
+              <div class="settings-option-label">
+                <strong>Notifications</strong>
+                <span class="hint">Email and in-app notifications</span>
+              </div>
+              <label class="checkbox-toggle">
+                <input type="checkbox" id="notificationsToggle" checked />
+                <span>Enable notifications</span>
+              </label>
+            </div>
+            <div class="settings-option">
+              <div class="settings-option-label">
+                <strong>Email Notifications</strong>
+                <span class="hint">Receive project updates via email</span>
+              </div>
+              <label class="checkbox-toggle">
+                <input type="checkbox" id="emailNotificationsToggle" checked />
+                <span>Enable email notifications</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Account Actions -->
+          <div class="settings-block danger-zone">
+            <h3 class="settings-title">⚠️ Account Actions</h3>
+            <div class="settings-option">
+              <div class="settings-option-label">
+                <strong>Export Data</strong>
+                <span class="hint">Download your projects and settings</span>
+              </div>
+              <button type="button" class="btn btn-secondary" id="exportDataBtn">
+                📥 Export Account Data
+              </button>
+            </div>
+            <div class="settings-option">
+              <div class="settings-option-label">
+                <strong>Delete Account</strong>
+                <span class="hint" style="color: var(--text-danger);">This action cannot be undone</span>
+              </div>
+              <button type="button" class="btn btn-danger" id="deleteAccountBtn">
+                🗑️ Delete Account
+              </button>
+            </div>
+          </div>
+
+          <!-- Settings Status -->
+          <div id="settingsMessage" class="toast" style="display: none; position: relative; margin-top: 1rem;"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Project create / edit modal -->
+  <div class="modal-backdrop" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <h2 id="modalTitle">Add project</h2>
+      <form id="projectForm">
+        <input type="hidden" id="pfId" name="id" value="" />
+        <div class="form-group">
+          <label for="pfName">Project name</label>
+          <input id="pfName" name="projectName" type="text" required placeholder="e.g. AI Chat App" />
+        </div>
+        <div class="form-group">
+          <label for="pfCode">Project code (unique)</label>
+          <input id="pfCode" name="projectCode" type="text" required placeholder="e.g. AI-2026-01" />
+        </div>
+        <div class="form-group">
+          <label for="pfDesc">Description</label>
+          <textarea id="pfDesc" name="description" placeholder="Short summary…"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pfStart">Start date</label>
+            <input id="pfStart" name="startDate" type="date" />
+          </div>
+          <div class="form-group">
+            <label for="pfDeadline">Deadline</label>
+            <input id="pfDeadline" name="deadline" type="date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="pfStatus">Status</label>
+          <select id="pfStatus" name="status">
+            <option value="Pending">Pending</option>
+            <option value="Ongoing">Ongoing</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+        <div class="form-group leader-only" id="pfTeamWrap">
+          <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 0.35rem">Assign team members</span>
+          <div class="checkbox-list" id="pfTeamCheckboxes"></div>
+        </div>
+        <p id="pfError" class="form-error"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn-dash btn-dash-ghost" id="modalCancel">Cancel</button>
+          <button type="submit" class="btn-dash btn-dash-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      function computeApiBase() {
+        var meta = document.querySelector('meta[name="shadow-api-base"]');
+        if (meta && meta.content && String(meta.content).trim()) {
+          return String(meta.content).trim().replace(/\/$/, "");
+        }
+        if (window.location.protocol === "file:") return "http://localhost:3000";
+        var port = window.location.port;
+        if (port && port !== "3000") return window.location.protocol + "//" + window.location.hostname + ":3000";
+        return "";
+      }
+      window.ShadoWApi = {
+        TOKEN_KEY: "shadow_token",
+        base: computeApiBase(),
+        get token() {
+          return localStorage.getItem(this.TOKEN_KEY);
+        },
+        setToken: function (t) {
+          localStorage.setItem(this.TOKEN_KEY, t);
+        },
+        clearAuth: function () {
+          localStorage.removeItem(this.TOKEN_KEY);
+        },
+        request: async function (path, options) {
+          options = options || {};
+          var url = path.indexOf("http") === 0 ? path : this.base + path;
+          var headers = { "Content-Type": "application/json" };
+          if (options.headers) {
+            for (var k in options.headers) headers[k] = options.headers[k];
+          }
+          if (this.token) headers.Authorization = "Bearer " + this.token;
+          var res;
+          try {
+            res = await fetch(url, { method: options.method || "GET", headers: headers, body: options.body });
+          } catch (e) {
+            throw new Error("Network error. Start API server with npm start.");
+          }
+          var data = {};
+          try {
+            data = await res.json();
+          } catch (ignored) {}
+          if (!res.ok) throw new Error(data.message || res.statusText || "Request failed");
+          return data;
+        }
+      };
+    })();
+
+    (function () {
+      var currentUser = null;
+      var projects = [];
+      var teamMembers = [];
+      var notifications = [];
+      var editingId = null;
+
+      var el = function (id) {
+        return document.getElementById(id);
+      };
+
+      function redirectLogin() {
+        ShadoWApi.clearAuth();
+        window.location.href = "login.html";
+      }
+
+      function toast(message, type) {
+        type = type || "success";
+        var stack = el("toastStack");
+        if (!stack) return;
+        var t = document.createElement("div");
+        t.className = "toast " + type;
+        t.textContent = message;
+        stack.appendChild(t);
+        setTimeout(function () {
+          t.remove();
+        }, 4200);
+      }
+
+      function addNotification(title, detail) {
+        notifications.unshift({
+          title: title,
+          detail: detail || "",
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        });
+        if (notifications.length > 20) notifications.pop();
+        renderNotifPanel();
+        var badge = el("notifCount");
+        if (badge) {
+          badge.textContent = String(Math.min(99, notifications.length));
+          badge.hidden = notifications.length === 0;
+        }
+      }
+
+      function renderNotifPanel() {
+        var panel = el("notifPanel");
+        if (!panel) return;
+        panel.innerHTML = notifications.length
+          ? notifications
+              .map(function (n) {
+                return (
+                  '<div class="notif-item"><strong>' +
+                  escapeHtml(n.title) +
+                  "</strong>" +
+                  (n.detail ? escapeHtml(n.detail) + " · " : "") +
+                  escapeHtml(n.time) +
+                  "</div>"
+                );
+              })
+              .join("")
+          : '<div class="notif-item">No notifications yet.</div>';
+      }
+
+      function escapeHtml(s) {
+        var d = document.createElement("div");
+        d.textContent = s == null ? "" : String(s);
+        return d.innerHTML;
+      }
+
+      function fmtDate(iso) {
+        if (!iso) return "—";
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return "—";
+        return d.toLocaleDateString();
+      }
+
+      function statusPillClass(status) {
+        if (status === "Ongoing") return "pill pill-ongoing";
+        if (status === "Completed") return "pill pill-completed";
+        return "pill pill-pending";
+      }
+
+      function teamNames(members) {
+        if (!members || !members.length) return "—";
+        return members
+          .map(function (m) {
+            return typeof m === "object" && m && m.name ? m.name : String(m);
+          })
+          .join(", ");
+      }
+
+      function memberIdsFromForm() {
+        var boxes = document.querySelectorAll('#pfTeamCheckboxes input[type="checkbox"]:checked');
+        return Array.prototype.map.call(boxes, function (cb) {
+          return cb.value;
+        });
+      }
+
+      function buildTeamCheckboxes(selectedIds) {
+        var wrap = el("pfTeamCheckboxes");
+        if (!wrap) return;
+        selectedIds = selectedIds || [];
+        if (!teamMembers.length) {
+          wrap.innerHTML =
+            '<span style="font-size:0.8rem;color:var(--text-muted)">No team members yet — add some in Teams.</span>';
+          return;
+        }
+        wrap.innerHTML = teamMembers
+          .map(function (m) {
+            var sid = String(m._id || m.id);
+            var checked = selectedIds.indexOf(sid) >= 0 ? " checked" : "";
+            return (
+              "<label><input type=\"checkbox\" value=\"" +
+              escapeHtml(sid) +
+              "\"" +
+              checked +
+              " /> " +
+              escapeHtml(m.name) +
+              " <span style=\"opacity:0.6\">(" +
+              escapeHtml(m.jobRole || "") +
+              ")</span></label>"
+            );
+          })
+          .join("");
+      }
+
+      function getFilteredProjects() {
+        var q = (el("projectSearch") && el("projectSearch").value.toLowerCase().trim()) || "";
+        var st = (el("statusFilter") && el("statusFilter").value) || "";
+        return projects.filter(function (p) {
+          var matchQ =
+            !q ||
+            (p.projectName && p.projectName.toLowerCase().indexOf(q) >= 0) ||
+            (p.projectCode && p.projectCode.toLowerCase().indexOf(q) >= 0);
+          var matchS = !st || p.status === st;
+          return matchQ && matchS;
+        });
+      }
+
+      function renderProjectsTable() {
+        var tbody = el("projectsTbody");
+        var empty = el("projectsEmpty");
+        if (!tbody) return;
+        var list = getFilteredProjects();
+        tbody.innerHTML = list
+          .map(function (p) {
+            var id = String(p._id || p.id);
+            var actions =
+              currentUser && currentUser.role === "leader"
+                ? '<button type="button" class="btn-icon btn-edit" data-id="' +
+                  escapeHtml(id) +
+                  '">Edit</button>' +
+                  '<button type="button" class="btn-icon danger btn-del" data-id="' +
+                  escapeHtml(id) +
+                  '">Delete</button>'
+                : "";
+            return (
+              "<tr>" +
+              "<td>" +
+              escapeHtml(p.projectCode) +
+              "</td>" +
+              "<td>" +
+              escapeHtml(p.projectName) +
+              "</td>" +
+              "<td>" +
+              escapeHtml(teamNames(p.teamMemberIds)) +
+              "</td>" +
+              "<td><span class=\"" +
+              statusPillClass(p.status) +
+              "\">" +
+              escapeHtml(p.status || "Pending") +
+              "</span></td>" +
+              "<td>" +
+              escapeHtml(fmtDate(p.deadline)) +
+              "</td>" +
+              '<td class="col-actions">' +
+              actions +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+        if (empty) empty.hidden = list.length > 0;
+      }
+
+      function renderStats() {
+        var grid = el("statsGrid");
+        if (!grid) return;
+        var ongoing = 0;
+        var pending = 0;
+        var completed = 0;
+        projects.forEach(function (x) {
+          if (x.status === "Ongoing") ongoing++;
+          else if (x.status === "Completed") completed++;
+          else pending++;
+        });
+        grid.innerHTML =
+          '<div class="stat-card"><div class="num">' +
+          projects.length +
+          '</div><div class="lbl">Total projects</div></div>' +
+          '<div class="stat-card"><div class="num">' +
+          ongoing +
+          '</div><div class="lbl">Ongoing</div></div>' +
+          '<div class="stat-card"><div class="num">' +
+          pending +
+          '</div><div class="lbl">Pending</div></div>' +
+          '<div class="stat-card"><div class="num">' +
+          completed +
+          '</div><div class="lbl">Completed</div></div>';
+      }
+
+      function renderTeamTable() {
+        var tbody = el("teamTbody");
+        if (!tbody) return;
+        tbody.innerHTML = teamMembers
+          .map(function (m) {
+            return (
+              "<tr>" +
+              "<td>" +
+              escapeHtml(m.name) +
+              "</td>" +
+              "<td>" +
+              escapeHtml(m.email) +
+              "</td>" +
+              "<td>" +
+              escapeHtml(m.jobRole) +
+              "</td>" +
+              "<td>" +
+              escapeHtml(fmtDate(m.createdAt)) +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+      }
+
+      async function loadProjects() {
+        var data = await ShadoWApi.request("/api/get-projects");
+        projects = data.projects || [];
+        renderProjectsTable();
+        renderStats();
+        if (el("view-analytics").classList.contains("is-visible")) renderAnalytics();
+      }
+
+      async function loadTeam() {
+        if (!currentUser || currentUser.role !== "leader") return;
+        var data = await ShadoWApi.request("/api/team-members");
+        teamMembers = data.members || [];
+        renderTeamTable();
+      }
+
+      function isoToInputDate(iso) {
+        if (!iso) return "";
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return "";
+        return d.toISOString().slice(0, 10);
+      }
+
+      function openModal(edit, project) {
+        editingId = edit && project ? String(project._id || project.id) : null;
+        el("modalTitle").textContent = edit ? "Edit project" : "Add project";
+        el("pfId").value = editingId || "";
+        el("pfName").value = (project && project.projectName) || "";
+        el("pfCode").value = (project && project.projectCode) || "";
+        el("pfDesc").value = (project && project.description) || "";
+        el("pfStart").value = isoToInputDate(project && project.startDate);
+        el("pfDeadline").value = isoToInputDate(project && project.deadline);
+        el("pfStatus").value = (project && project.status) || "Pending";
+        el("pfError").textContent = "";
+        var selected = [];
+        if (project && project.teamMemberIds) {
+          project.teamMemberIds.forEach(function (m) {
+            if (typeof m === "object" && m._id) selected.push(String(m._id));
+            else selected.push(String(m));
+          });
+        }
+        buildTeamCheckboxes(selected);
+        el("projectModal").classList.add("is-open");
+        el("pfName").focus();
+      }
+
+      function closeModal() {
+        el("projectModal").classList.remove("is-open");
+        editingId = null;
+      }
+
+      async function saveProject(ev) {
+        ev.preventDefault();
+        el("pfError").textContent = "";
+        var body = {
+          projectName: el("pfName").value.trim(),
+          projectCode: el("pfCode").value.trim(),
+          description: el("pfDesc").value,
+          startDate: el("pfStart").value || null,
+          deadline: el("pfDeadline").value || null,
+          status: el("pfStatus").value,
+          teamMemberIds: memberIdsFromForm()
+        };
+        try {
+          if (editingId) {
+            await ShadoWApi.request("/api/projects/" + editingId, { method: "PUT", body: JSON.stringify(body) });
+            toast("Project updated");
+            addNotification("Project updated", body.projectName);
+          } else {
+            await ShadoWApi.request("/api/add-project", { method: "POST", body: JSON.stringify(body) });
+            toast("Project created");
+            addNotification("New project", body.projectName);
+          }
+          closeModal();
+          await loadProjects();
+        } catch (err) {
+          el("pfError").textContent = err.message;
+        }
+      }
+
+      async function deleteProject(id) {
+        if (!confirm("Delete this project?")) return;
+        try {
+          await ShadoWApi.request("/api/delete-project/" + id, { method: "DELETE" });
+          toast("Project deleted");
+          addNotification("Project removed", "");
+          await loadProjects();
+        } catch (err) {
+          toast(err.message, "error");
+        }
+      }
+
+      function exportCsv() {
+        var rows = getFilteredProjects();
+        var headers = ["Project Code", "Project Name", "Team", "Status", "Deadline"];
+        var lines = [headers.join(",")];
+        rows.forEach(function (p) {
+          var team = teamNames(p.teamMemberIds).replace(/"/g, '""');
+          var line = [
+            '"' + String(p.projectCode).replace(/"/g, '""') + '"',
+            '"' + String(p.projectName).replace(/"/g, '""') + '"',
+            '"' + team + '"',
+            p.status || "Pending",
+            fmtDate(p.deadline)
+          ];
+          lines.push(line.join(","));
+        });
+        var blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "shadow-projects.csv";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("CSV exported");
+      }
+
+      function renderAnalytics() {
+        ["statusChart", "deadlineChart", "teamChart"].forEach(function (id) {
+          var canvas = el(id);
+          if (canvas && canvas.chart) canvas.chart.destroy();
+        });
+
+        var statusCounts = { Ongoing: 0, Pending: 0, Completed: 0 };
+        projects.forEach(function (p) {
+          statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
+        });
+        var statusCtx = el("statusChart");
+        if (statusCtx && window.Chart) {
+          statusCtx.chart = new Chart(statusCtx, {
+            type: "pie",
+            data: {
+              labels: Object.keys(statusCounts),
+              datasets: [{ data: Object.values(statusCounts), backgroundColor: ["#8b5cf6", "#f59e0b", "#10b981"], borderColor: "#fff", borderWidth: 2 }]
+            },
+            options: { responsive: true, plugins: { legend: { labels: { color: "#f4f4f8" } } } }
+          });
+        }
+
+        var deadlineCounts = {};
+        projects.forEach(function (p) {
+          if (!p.deadline) return;
+          var month = new Date(p.deadline).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+          deadlineCounts[month] = (deadlineCounts[month] || 0) + 1;
+        });
+        var deadlineCtx = el("deadlineChart");
+        if (deadlineCtx && window.Chart) {
+          deadlineCtx.chart = new Chart(deadlineCtx, {
+            type: "bar",
+            data: { labels: Object.keys(deadlineCounts), datasets: [{ label: "Projects", data: Object.values(deadlineCounts), backgroundColor: "#8b5cf6", borderColor: "#a78bfa", borderWidth: 1 }] },
+            options: {
+              responsive: true,
+              scales: {
+                y: { beginAtZero: true, ticks: { color: "#f4f4f8" }, grid: { color: "rgba(255,255,255,0.1)" } },
+                x: { ticks: { color: "#f4f4f8" }, grid: { color: "rgba(255,255,255,0.1)" } }
+              },
+              plugins: { legend: { labels: { color: "#f4f4f8" } } }
+            }
+          });
+        }
+      }
+
+      function switchView(name) {
+        document.querySelectorAll(".view-panel").forEach(function (p) {
+          p.classList.remove("is-visible");
+        });
+        var target = el("view-" + name);
+        if (target) target.classList.add("is-visible");
+        document.querySelectorAll("#sideNav li").forEach(function (li) {
+          li.classList.toggle("is-active", li.getAttribute("data-view") === name);
+        });
+        if (name === "analytics") renderAnalytics();
+      }
+
+      function initTheme() {
+        var light = localStorage.getItem("shadow_theme") === "light";
+        document.body.classList.toggle("theme-light", light);
+        if (el("themeToggle")) el("themeToggle").textContent = light ? "Dark mode" : "Light mode";
+        if (el("themeBtn")) el("themeBtn").textContent = light ? "🌙 Dark Mode" : "☀️ Light Mode";
+      }
+
+      function toggleTheme() {
+        var light = !document.body.classList.contains("theme-light");
+        document.body.classList.toggle("theme-light", light);
+        localStorage.setItem("shadow_theme", light ? "light" : "dark");
+        if (el("themeToggle")) el("themeToggle").textContent = light ? "Dark mode" : "Light mode";
+        if (el("themeBtn")) el("themeBtn").textContent = light ? "🌙 Dark Mode" : "☀️ Light Mode";
+      }
+      window.toggleTheme = toggleTheme;
+
+      function showSettingsMessage(msg, type) {
+        var msgEl = el("settingsMessage");
+        if (!msgEl) return;
+        msgEl.textContent = msg;
+        msgEl.className = "toast " + (type || "success");
+        msgEl.style.display = "block";
+        setTimeout(function () {
+          msgEl.style.display = "none";
+        }, 3000);
+      }
+
+      function initSettings() {
+        if (!currentUser) return;
+        el("profileName").value = currentUser.name || "";
+        el("profileEmail").value = currentUser.email || "";
+        el("profileRole").value = currentUser.role || "";
+
+        var notifEnabled = localStorage.getItem("shadow_notifications") !== "false";
+        var emailNotifEnabled = localStorage.getItem("shadow_email_notifications") !== "false";
+        el("notificationsToggle").checked = notifEnabled;
+        el("emailNotificationsToggle").checked = emailNotifEnabled;
+
+        el("profileForm").addEventListener("submit", function (e) {
+          e.preventDefault();
+          var newName = el("profileName").value.trim();
+          if (!newName) return showSettingsMessage("Please enter a name", "error");
+          currentUser.name = newName;
+          el("userName").textContent = newName;
+          showSettingsMessage("Profile updated", "success");
+        });
+
+        el("passwordForm").addEventListener("submit", function (e) {
+          e.preventDefault();
+          var newPass = el("newPassword").value;
+          var confirm = el("confirmPassword").value;
+          if (newPass.length < 6) return showSettingsMessage("Password must be at least 6 characters", "error");
+          if (newPass !== confirm) return showSettingsMessage("Passwords do not match", "error");
+          el("passwordForm").reset();
+          showSettingsMessage("Password updated (demo mode)", "success");
+        });
+
+        function saveNotificationSettings() {
+          localStorage.setItem("shadow_notifications", String(el("notificationsToggle").checked));
+          localStorage.setItem("shadow_email_notifications", String(el("emailNotificationsToggle").checked));
+          showSettingsMessage("Notification settings saved", "success");
+        }
+        el("notificationsToggle").addEventListener("change", saveNotificationSettings);
+        el("emailNotificationsToggle").addEventListener("change", saveNotificationSettings);
+
+        el("exportDataBtn").addEventListener("click", function () {
+          var data = { user: currentUser, projects: projects, exportDate: new Date().toISOString() };
+          var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "shadow-account-export-" + Date.now() + ".json";
+          a.click();
+          URL.revokeObjectURL(url);
+          showSettingsMessage("Account data exported", "success");
+        });
+
+        el("deleteAccountBtn").addEventListener("click", function () {
+          if (!confirm("Delete account from this browser session?")) return;
+          ShadoWApi.clearAuth();
+          alert("Session cleared.");
+          window.location.href = "index.html";
+        });
+      }
+
+      async function init() {
+        if (!ShadoWApi.token) return redirectLogin();
+        try {
+          var me = await ShadoWApi.request("/api/me");
+          currentUser = me.user;
+        } catch (e) {
+          return redirectLogin();
+        }
+
+        el("userName").textContent = currentUser.name;
+        el("roleBadge").textContent = currentUser.role === "leader" ? "Team Leader / Admin" : "Team Member";
+        if (currentUser.role === "leader") document.body.classList.add("is-leader");
+        else el("appShell").classList.add("member-readonly");
+
+        initTheme();
+        initSettings();
+
+        el("sideNav").addEventListener("click", function (e) {
+          var li = e.target.closest("li[data-view]");
+          if (!li) return;
+          switchView(li.getAttribute("data-view"));
+        });
+
+        el("themeToggle").addEventListener("click", toggleTheme);
+        el("logoutBtn").addEventListener("click", function () {
+          ShadoWApi.clearAuth();
+          window.location.href = "index.html";
+        });
+
+        var notifBtn = el("notifBtn");
+        var notifPanel = el("notifPanel");
+        notifBtn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          var open = notifPanel.classList.toggle("is-open");
+          notifBtn.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+        document.addEventListener("click", function () {
+          notifPanel.classList.remove("is-open");
+          notifBtn.setAttribute("aria-expanded", "false");
+        });
+        notifPanel.addEventListener("click", function (e) {
+          e.stopPropagation();
+        });
+        renderNotifPanel();
+
+        el("projectSearch").addEventListener("input", renderProjectsTable);
+        el("statusFilter").addEventListener("change", renderProjectsTable);
+        el("btnExportCsv").addEventListener("click", exportCsv);
+        el("btnAddProject").addEventListener("click", function () {
+          openModal(false, null);
+        });
+
+        el("projectForm").addEventListener("submit", saveProject);
+        el("modalCancel").addEventListener("click", closeModal);
+        el("projectModal").addEventListener("click", function (e) {
+          if (e.target === el("projectModal")) closeModal();
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") closeModal();
+        });
+
+        el("projectsTbody").addEventListener("click", function (e) {
+          var editBtn = e.target.closest(".btn-edit");
+          var delBtn = e.target.closest(".btn-del");
+          if (editBtn) {
+            var id = editBtn.getAttribute("data-id");
+            var p = projects.find(function (x) {
+              return String(x._id || x.id) === id;
+            });
+            if (p) openModal(true, p);
+          }
+          if (delBtn) deleteProject(delBtn.getAttribute("data-id"));
+        });
+
+        if (currentUser.role === "leader") {
+          el("addMemberForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            el("teamFormError").textContent = "";
+            var payload = {
+              name: el("mName").value.trim(),
+              email: el("mEmail").value.trim(),
+              password: el("mPassword").value,
+              jobRole: el("mJobRole").value
+            };
+            try {
+              await ShadoWApi.request("/api/add-team-member", { method: "POST", body: JSON.stringify(payload) });
+              toast("Team member added");
+              el("addMemberForm").reset();
+              await loadTeam();
+            } catch (err) {
+              el("teamFormError").textContent = err.message;
+            }
+          });
+        }
+
+        try {
+          await loadProjects();
+          await loadTeam();
+          addNotification("Dashboard ready", "Projects loaded from API");
+        } catch (err) {
+          toast(err.message || "Could not load data", "error");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", init);
+    })();
+  </script>
+</body>
+</html>

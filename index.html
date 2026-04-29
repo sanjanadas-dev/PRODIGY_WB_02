@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="shadow-api-base" content="http://localhost:3000" />
+  <title>ShadoW — Manage your team projects</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+
+  <main class="main-card" id="mainCard">
+    <header class="navbar">
+      <a href="index.html" class="logo">ShadoW</a>
+      <nav class="nav-links" aria-label="Primary"></nav>
+      <div class="nav-desktop-cta" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end">
+        <a href="login.html" class="btn btn-dash btn-dash-ghost" style="text-decoration: none; color: var(--text-muted)">Log in</a>
+        <a href="signup.html" class="btn btn-nav">Sign up</a>
+      </div>
+      <button type="button" class="nav-toggle" aria-label="Open menu" aria-expanded="false" id="navToggle">
+        <span></span><span></span><span></span>
+      </button>
+    </header>
+
+    <div class="nav-mobile" id="navMobile" hidden>
+      <a href="login.html">Log in</a>
+      <a href="signup.html" class="btn btn-nav btn-nav-block">Sign up</a>
+    </div>
+
+    <section class="hero" id="get-started">
+      <p class="hero-badge">JOIN THE SPEED REVOLUTION</p>
+      <h1 class="hero-title">Manage your team projects</h1>
+      <a href="dashboard.html" class="btn btn-cta">
+        Get Started
+        <span class="btn-arrow" aria-hidden="true">→</span>
+      </a>
+      <p class="hint" style="text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.875rem">
+        New here?
+        <a href="signup.html" style="color: var(--purple)">Create an account</a>
+        ·
+        <a href="login.html" style="color: var(--purple)">Sign in</a>
+      </p>
+    </section>
+
+    <section class="dashboard-wrap" id="dashboard" aria-label="Product preview">
+      <div class="dashboard">
+        <aside class="dash-sidebar">
+          <div class="dash-brand">S</div>
+          <ul class="dash-menu">
+            <li>
+              <span class="dash-icon" aria-hidden="true">▣</span>
+              <span>Overview</span>
+            </li>
+            <li class="is-active">
+              <span class="dash-icon" aria-hidden="true">◫</span>
+              <span>Projects</span>
+            </li>
+            <li>
+              <span class="dash-icon" aria-hidden="true">◎</span>
+              <span>Teams</span>
+            </li>
+            <li>
+              <span class="dash-icon" aria-hidden="true">◇</span>
+              <span>Analytics</span>
+            </li>
+            <li>
+              <span class="dash-icon" aria-hidden="true">⚙</span>
+              <span>Settings</span>
+            </li>
+          </ul>
+        </aside>
+        <div class="dash-main">
+          <div class="dash-toolbar">
+            <h2 class="dash-heading">Projects</h2>
+            <div class="dash-actions">
+              <button type="button" class="btn-dash btn-dash-ghost">Export</button>
+              <button type="button" class="btn-dash btn-dash-primary">Add Project</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Project Code</th>
+                  <th>Project Name</th>
+                  <th>Team</th>
+                  <th>Status</th>
+                  <th>Deadline</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>AI-2026-01</td>
+                  <td>AI Chat App</td>
+                  <td>John, Alex, Sara</td>
+                  <td><span class="pill pill-ongoing">Ongoing</span></td>
+                  <td>May 1, 2026</td>
+                </tr>
+                <tr>
+                  <td>WEB-12</td>
+                  <td>Marketing site</td>
+                  <td>Alex</td>
+                  <td><span class="pill pill-pending">Pending</span></td>
+                  <td>Jun 15, 2026</td>
+                </tr>
+                <tr>
+                  <td>API-03</td>
+                  <td>Billing service</td>
+                  <td>Sara</td>
+                  <td><span class="pill pill-completed">Completed</span></td>
+                  <td>Mar 2, 2026</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /**
+     * ShadoW landing — mobile nav + small enhancements
+     */
+    (function () {
+      "use strict";
+
+      var navToggle = document.getElementById("navToggle");
+      var navMobile = document.getElementById("navMobile");
+      var mainCard = document.getElementById("mainCard");
+
+      function setMobileNavOpen(isOpen) {
+        if (!navToggle || !navMobile) return;
+        navToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        navToggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+        if (isOpen) navMobile.removeAttribute("hidden");
+        else navMobile.setAttribute("hidden", "");
+      }
+
+      if (navToggle && navMobile) {
+        navToggle.addEventListener("click", function () {
+          var open = navToggle.getAttribute("aria-expanded") === "true";
+          setMobileNavOpen(!open);
+        });
+        navMobile.querySelectorAll("a").forEach(function (link) {
+          link.addEventListener("click", function () {
+            setMobileNavOpen(false);
+          });
+        });
+      }
+
+      window.addEventListener("resize", function () {
+        if (window.innerWidth > 768) setMobileNavOpen(false);
+      });
+
+      if (mainCard && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        mainCard.style.animation = "none";
+        mainCard.style.opacity = "1";
+        mainCard.style.transform = "none";
+      }
+    })();
+  </script>
+</body>
+</html>

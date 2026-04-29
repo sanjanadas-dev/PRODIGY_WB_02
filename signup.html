@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- If your API runs somewhere other than port 3000, set: content="http://localhost:YOUR_PORT" -->
+  <meta name="shadow-api-base" content="" />
+  <title>Sign up — ShadoW</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="app-body">
+  <div class="page-bg" aria-hidden="true"></div>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h1>Create leader account</h1>
+      <form id="authForm" data-endpoint="/api/register">
+        <div class="form-group">
+          <label for="name">Full name</label>
+          <input id="name" name="name" type="text" autocomplete="name" required />
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="new-password" required minlength="6" />
+        </div>
+        <p id="formError" class="form-error" role="alert"></p>
+        <button type="submit" class="btn btn-cta" style="width: 100%; border: none">Create account</button>
+        <p class="hint" style="margin-top: 1.25rem; margin-bottom: 0">
+          Already have an account?
+          <a href="login.html" style="color: var(--purple)">Sign in</a>
+        </p>
+      </form>
+    </div>
+  </div>
+  <script>
+    (function () {
+      function computeApiBase() {
+        if (typeof window === "undefined") return "";
+        var meta = document.querySelector('meta[name="shadow-api-base"]');
+        if (meta && meta.content && String(meta.content).trim()) {
+          return String(meta.content).trim().replace(/\/$/, "");
+        }
+        if (window.location.protocol === "file:") return "http://localhost:3000";
+        var port = window.location.port;
+        var host = window.location.hostname;
+        var protocol = window.location.protocol;
+        if (port === "3000") return "";
+        if (port && port !== "3000") return protocol + "//" + host + ":3000";
+        return "";
+      }
+      window.ShadoWApi = {
+        TOKEN_KEY: "shadow_token",
+        base: typeof window !== "undefined" ? computeApiBase() : "",
+        get token() {
+          return localStorage.getItem(this.TOKEN_KEY);
+        },
+        setToken: function (t) {
+          localStorage.setItem(this.TOKEN_KEY, t);
+        },
+        clearAuth: function () {
+          localStorage.removeItem(this.TOKEN_KEY);
+        },
+        request: async function (path, options) {
+          options = options || {};
+          var base = typeof this.base === "string" ? this.base.replace(/\/$/, "") : "";
+          var url = path.indexOf("http") === 0 ? path : base + path;
+          var headers = { "Content-Type": "application/json" };
+          if (options.headers) for (var k in options.headers) headers[k] = options.headers[k];
+          if (this.token) headers.Authorization = "Bearer " + this.token;
+          var res;
+          try {
+            res = await fetch(url, {
+              method: options.method || "GET",
+              headers: headers,
+              body: options.body != null ? options.body : undefined
+            });
+          } catch (net) {
+            throw new Error((net.message || "Network error") + ". Start server with npm start.");
+          }
+          var data = {};
+          try { data = await res.json(); } catch (e) {}
+          if (!res.ok) throw new Error(data.message || res.statusText || "Request failed");
+          return data;
+        }
+      };
+    })();
+
+    (function () {
+      var form = document.getElementById("authForm");
+      var errEl = document.getElementById("formError");
+      if (!form || !errEl) return;
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        errEl.textContent = "";
+        var endpoint = form.getAttribute("data-endpoint") || form.dataset.endpoint;
+        var nameEl = form.elements.namedItem("name");
+        var emailEl = form.elements.namedItem("email");
+        var passwordEl = form.elements.namedItem("password");
+        var payload = {
+          email: emailEl ? String(emailEl.value).trim() : "",
+          password: passwordEl ? passwordEl.value : ""
+        };
+        if (nameEl) payload.name = String(nameEl.value).trim();
+        if (!payload.email || !payload.password || (nameEl && !payload.name)) {
+          errEl.textContent = "Please fill in all fields.";
+          return;
+        }
+        var submitBtn = form.querySelector('button[type="submit"]');
+        var prevText = submitBtn ? submitBtn.textContent : "";
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = endpoint.indexOf("login") !== -1 ? "Signing in..." : "Creating account...";
+        }
+        try {
+          var data = await ShadoWApi.request(endpoint, { method: "POST", body: JSON.stringify(payload) });
+          if (data.token) ShadoWApi.setToken(data.token);
+          window.location.href = "dashboard.html";
+        } catch (err) {
+          errEl.textContent = err.message || "Something went wrong";
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = prevText;
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
